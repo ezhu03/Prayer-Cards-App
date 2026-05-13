@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prayer Cards</title>
+    <meta name="theme-color" content="#6bb6e8" />
+    <meta name="apple-mobile-web-app-title" content="Prayer Cards" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=32" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Prayer Cards</p>
+          <h1>One person at a time.</h1>
+        </div>
+        <div class="top-actions">
+          <button class="menu-button" id="openDashboardButton" type="button" aria-label="Open menu">
+            <img src="assets/1600037-200.png" alt="" />
+          </button>
+          <button class="add-button" id="openAddButton" type="button" aria-label="Add card">+</button>
+          <button class="ghost-button drawer-only" id="exportButton" type="button">Export</button>
+          <input id="importInput" type="file" accept=".json,.csv,application/json,text/csv" />
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="deck-panel" aria-label="Current prayer card">
+          <div class="card-stack">
+            <article class="prayer-card is-template-preview" id="card" tabindex="0" aria-live="polite">
+              <div class="priority-pill" id="cardPriority"></div>
+              <div class="card-face card-front" id="cardFront">
+                <p class="card-kicker" id="cardFrontKicker">Welcome</p>
+                <div class="name-row">
+                  <h2 id="cardName">No cards yet</h2>
+                  <div class="card-photo-frame is-empty" id="cardPhotoFrame" aria-hidden="true">
+                    <img id="cardPhoto" alt="" hidden />
+                  </div>
+                </div>
+                <p class="card-meta" id="cardMeta">Add someone to begin.</p>
+                <div class="card-flags" id="cardFlags"></div>
+              </div>
+              <div class="card-face card-back hidden" id="cardBack">
+                <p class="card-kicker" id="cardBackKicker">How it works</p>
+                <p id="cardNote">Tap + to add a person, write the request, choose a priority, then flip or mark prayed.</p>
+                <div class="card-verse" id="cardVerse" hidden></div>
+              </div>
+              <button class="card-update-button" id="updateCardButton" type="button">Update</button>
+            </article>
+          </div>
+
+          <div class="card-controls">
+            <button class="secondary-button" id="flipButton" type="button">Flip</button>
+            <button class="secondary-button" id="skipButton" type="button">Skip</button>
+            <button class="secondary-button icon-text-button" id="openTimedPrayerButton" type="button">
+              <img src="assets/timer.svg" alt="" />
+              <span>Timed</span>
+            </button>
+            <button class="primary-button" id="prayButton" type="button">Mark Prayed</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <section class="dashboard-drawer" id="dashboardDrawer" aria-label="Menu" hidden>
+      <div class="drawer-panel">
+        <div class="section-heading">
+          <h2>Menu</h2>
+          <button class="text-button" id="closeDashboardButton" type="button">Close</button>
+        </div>
+        <div class="stats-strip" id="statsStrip"></div>
+        <div class="dashboard-block" id="flagFilterBlock">
+          <h3>Filter by flag</h3>
+          <div class="flag-filter-list" id="flagFilterList"></div>
+        </div>
+        <div class="dashboard-block">
+          <h3>Priority Queue</h3>
+          <div class="dashboard-list" id="dashboardList"></div>
+        </div>
+        <div class="dashboard-block timed-settings-block">
+          <div class="section-heading compact-heading">
+            <h3>Timed Prayer</h3>
+            <img src="assets/timer.svg" alt="" />
+          </div>
+          <div class="timed-settings-grid">
+            <label>
+              <span>Per card (s)</span>
+              <input id="timerPerCardInput" type="number" min="10" max="600" step="5" />
+            </label>
+            <label>
+              <span>Total time (min)</span>
+              <input id="timerTotalInput" type="number" min="1" max="180" step="1" />
+            </label>
+            <label>
+              <span>Flags</span>
+              <select id="timerFlagInput"></select>
+            </label>
+          </div>
+          <button class="primary-button full-width" id="startTimedPrayerButton" type="button">Start Timed Prayer</button>
+        </div>
+        <div class="dashboard-block">
+          <div class="section-heading compact-heading">
+            <h3>People</h3>
+            <span id="libraryCount">0</span>
+          </div>
+          <label class="people-sort-control">
+            <span>Sort By</span>
+            <select id="dashboardSortInput">
+              <option value="priority">Priority</option>
+              <option value="name">Name</option>
+              <option value="lastPrayed">Last prayed</option>
+            </select>
+          </label>
+          <div class="search-row">
+            <input id="searchInput" type="search" placeholder="Search names or notes" autocomplete="off" />
+          </div>
+          <div class="person-list" id="personList"></div>
+        </div>
+        <div class="drawer-actions">
+          <button class="ghost-button" id="drawerExportButton" type="button">Export</button>
+          <button class="ghost-button" id="openImportHelpButton" type="button">Import</button>
+          <button class="ghost-button danger-button" id="resetAllButton" type="button">Reset All</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="modal" id="formModal" aria-label="Prayer card editor" hidden>
+      <div class="modal-panel">
+        <div class="section-heading">
+          <h2 id="formTitle">Add Card</h2>
+          <button class="text-button" id="cancelEditButton" type="button">Close</button>
+        </div>
+        <form id="cardForm">
+          <label>
+            <span>Name</span>
+            <input id="nameInput" name="name" type="text" autocomplete="off" required />
+          </label>
+
+          <label>
+            <span>Prayer request</span>
+            <textarea id="noteInput" name="note" rows="5" required></textarea>
+          </label>
+
+          <label>
+            <span>Priority</span>
+            <select id="priorityInput" name="priority" class="priority-dropdown priority-medium">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+
+          <section class="flags-field" aria-label="Flags">
+            <div class="section-heading compact-heading">
+              <div>
+                <h3>Flags</h3>
+              </div>
+            </div>
+            <div class="flag-picker" id="flagPicker"></div>
+            <div class="flag-tools">
+              <button class="secondary-button compact-button" id="openFlagCreatorButton" type="button">+ Flag</button>
+              <div class="flag-popover" id="flagPopover" hidden>
+                <input id="flagNameInput" type="text" placeholder="Flag name" autocomplete="off" />
+                <div class="flag-color-row">
+                  <input id="flagColorInput" type="color" value="#5aa6c8" aria-label="Flag color" />
+                  <div class="flag-swatches" aria-label="Preset flag colors">
+                    <button type="button" data-color="#68b5e6"></button>
+                    <button type="button" data-color="#6fc6b6"></button>
+                    <button type="button" data-color="#7aa9ec"></button>
+                    <button type="button" data-color="#9a96ee"></button>
+                  </div>
+                </div>
+                <button class="secondary-button compact-button" id="addFlagButton" type="button">Add</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="photo-field">
+            <div>
+              <span>Photo</span>
+              <p>Optional image for the card.</p>
+            </div>
+            <div class="photo-actions">
+              <label class="photo-upload" for="photoInput">
+                <span class="photo-preview is-empty" id="photoPreview"></span>
+                <span>Choose</span>
+              </label>
+              <input id="photoInput" name="photo" type="file" accept="image/*" />
+              <button class="text-button" id="clearPhotoButton" type="button" hidden>Clear</button>
+            </div>
+          </div>
+
+          <button class="primary-button full-width" id="saveButton" type="submit">Add Card</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="modal" id="importModal" aria-label="Import instructions" hidden>
+      <div class="modal-panel import-panel">
+        <div class="section-heading">
+          <h2>Import Cards</h2>
+          <button class="text-button" id="closeImportHelpButton" type="button">Close</button>
+        </div>
+        <div class="import-guide">
+          <p>Import a JSON export from this app, or a CSV file with a header row.</p>
+          <div class="import-example">
+            <span>CSV columns</span>
+            <code>name,note,priority,flags</code>
+          </div>
+          <p>Priority can be low, medium, or high. Separate multiple flags with semicolons, like <code>health;job</code>.</p>
+        </div>
+        <button class="primary-button full-width" id="chooseImportFileButton" type="button">Choose File</button>
+      </div>
+    </section>
+
+    <section class="timed-session" id="timedSession" aria-label="Timed prayer session" hidden>
+      <div class="timed-session-panel">
+        <div class="timed-session-top">
+          <div>
+            <p class="eyebrow">Timed Prayer</p>
+            <h2 id="timerSlideName">Ready</h2>
+          </div>
+          <button class="text-button" id="exitTimedPrayerButton" type="button">Exit</button>
+        </div>
+        <div class="timed-slide-body">
+          <div class="timed-photo-frame is-empty" id="timerPhotoFrame" aria-hidden="true">
+            <img id="timerPhoto" alt="" hidden />
+          </div>
+          <div class="timed-slide-copy">
+            <p class="timed-slide-note" id="timerSlideNote">Choose a set of cards to begin.</p>
+            <div class="timed-slide-verse" id="timerSlideVerse" hidden></div>
+          </div>
+        </div>
+        <div class="timer-ring" aria-live="polite">
+          <span id="timerCountdown">0:00</span>
+        </div>
+        <div class="timed-progress">
+          <span id="timerProgressText">0 / 0</span>
+          <div class="timed-progress-track">
+            <div id="timerProgressBar"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script src="app.js?v=32"></script>
+  </body>
+</html>

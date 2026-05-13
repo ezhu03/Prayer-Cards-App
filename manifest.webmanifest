@@ -1,0 +1,18 @@
+{
+  "name": "Prayer Cards",
+  "short_name": "Prayer Cards",
+  "description": "A focused prayer flash card app for names, requests, priorities, and prayer history.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f9ff",
+  "theme_color": "#6bb6e8",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
