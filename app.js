@@ -14,7 +14,24 @@ const cadenceBounds = {
   high: { min: 0.75, max: 3 },
 };
 
-const flagColorPalette = ["#68b5e6", "#6fc6b6", "#7aa9ec", "#9a96ee", "#58a8d8", "#76cfa8", "#6e8fe8", "#b08dec"];
+const flagColorPalette = [
+  "#2f80ed",
+  "#27ae60",
+  "#f2994a",
+  "#eb5757",
+  "#9b51e0",
+  "#00a7b5",
+  "#f2c94c",
+  "#bb2f6a",
+  "#16a085",
+  "#6c63ff",
+  "#d35400",
+  "#c0392b",
+  "#2d9cdb",
+  "#7cb342",
+  "#8e44ad",
+  "#ff6f91",
+];
 
 const suggestionStopWords = new Set([
   "a",
@@ -1853,6 +1870,33 @@ function formatVerse(verse) {
   return `${verse.text} - ${verse.reference || "Suggested verse"}`;
 }
 
+function isEditableElement(element) {
+  if (!element) return false;
+  if (element.isContentEditable) return true;
+  return Boolean(element.closest?.("input, textarea, select, [contenteditable='true']"));
+}
+
+function selectEditableContents(element) {
+  if (!element) return false;
+  const editable = element.closest?.("input, textarea, [contenteditable='true']") || element;
+
+  if (editable instanceof HTMLInputElement || editable instanceof HTMLTextAreaElement) {
+    editable.select();
+    return true;
+  }
+
+  if (editable.isContentEditable) {
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(editable);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return true;
+  }
+
+  return false;
+}
+
 function requestAIVerseForCard(card) {
   if (!card?.id || !card.note || !window.webkit?.messageHandlers?.suggestVerseWithAI) return;
 
@@ -2374,8 +2418,38 @@ function renderTimerFlagOptions() {
     selected === "all" || state.flags.some((flag) => flag.id === selected) ? selected : "all";
 }
 
+function hexToRgb(hex = "") {
+  const normalized = String(hex).replace("#", "").trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return null;
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16),
+  };
+}
+
+function colorDistance(a, b) {
+  const left = hexToRgb(a);
+  const right = hexToRgb(b);
+  if (!left || !right) return 0;
+  return Math.hypot(left.r - right.r, left.g - right.g, left.b - right.b);
+}
+
 function suggestedFlagColor(offset = 0) {
-  return flagColorPalette[(state.flags.length + offset) % flagColorPalette.length];
+  const usedColors = state.flags.map((flag) => flag.color).filter(isColor);
+  if (!usedColors.length) {
+    return flagColorPalette[offset % flagColorPalette.length];
+  }
+
+  const rankedColors = flagColorPalette
+    .map((color, index) => {
+      const minimumDistance = Math.min(...usedColors.map((usedColor) => colorDistance(color, usedColor)));
+      const reusePenalty = usedColors.includes(color) ? 1000 : 0;
+      return { color, score: minimumDistance - reusePenalty, index };
+    })
+    .sort((a, b) => b.score - a.score || a.index - b.index);
+
+  return rankedColors[offset % rankedColors.length].color;
 }
 
 function renderFlagColorChoices() {
@@ -3078,15 +3152,25 @@ document.querySelectorAll(".flag-swatches button").forEach((button) => {
 
 document.addEventListener("keydown", (event) => {
   const isCommandShortcut = event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+  const isControlShortcut = event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
+  const key = event.key.toLowerCase();
+  const isEditable = isEditableElement(event.target);
+
+  if ((isCommandShortcut || isControlShortcut) && key === "a" && isEditable) {
+    if (selectEditableContents(event.target)) {
+      event.preventDefault();
+    }
+    return;
+  }
 
   if (event.key === "Escape") {
     if (closeActiveOverlay()) event.preventDefault();
     return;
   }
 
+  if (isEditable) return;
   if (!isCommandShortcut) return;
 
-  const key = event.key.toLowerCase();
   const commands = {
     n: "new-card",
     f: "open-menu",

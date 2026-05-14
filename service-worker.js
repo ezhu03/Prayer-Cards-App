@@ -1,4 +1,4 @@
-const CACHE_NAME = "prayer-cards-v32";
+const CACHE_NAME = "prayer-cards-v33";
 const APP_SHELL = [
   "./",
   "./index.html",
